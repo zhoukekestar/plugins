@@ -98,25 +98,6 @@ export function checkEsModule(parse, code, id) {
   return { isEsModule, hasDefaultExport, hasNamedExports, ast };
 }
 
-function getDefinePropertyCallName(node, targetName) {
-  if (node.type !== 'CallExpression') return;
-
-  const {
-    callee: { object, property }
-  } = node;
-
-  if (!object || object.type !== 'Identifier' || object.name !== 'Object') return;
-
-  if (!property || property.type !== 'Identifier' || property.name !== 'defineProperty') return;
-
-  if (node.arguments.length !== 3) return;
-
-  const [target, val] = node.arguments;
-  if (target.type !== 'Identifier' || target.name !== targetName) return;
-  // eslint-disable-next-line consistent-return
-  return val.value;
-}
-
 export function transformCommonjs(
   parse,
   code,
@@ -151,8 +132,6 @@ export function transformCommonjs(
 
   // TODO technically wrong since globals isn't populated yet, but ¯\_(ツ)_/¯
   const HELPERS_NAME = deconflict(scope, globals, 'commonjsHelpers');
-
-  const namedExports = {};
 
   // TODO handle transpiled modules
   let shouldWrap = /__esModule/.test(code);
@@ -444,21 +423,8 @@ export function transformCommonjs(
 
         node.left._skip = true;
 
-        if (flattened.keypath === 'module.exports' && node.right.type === 'ObjectExpression') {
-          node.right.properties.forEach((prop) => {
-            if (prop.computed || !('key' in prop) || prop.key.type !== 'Identifier') return;
-            const { name } = prop.key;
-            if (name === makeLegalIdentifier(name)) namedExports[name] = true;
-          });
-          return;
-        }
-
-        if (match[1]) namedExports[match[1]] = true;
         return;
       }
-
-      const name = getDefinePropertyCallName(node, 'exports');
-      if (name && name === makeLegalIdentifier(name)) namedExports[name] = true;
 
       // if this is `var x = require('x')`, we can do `import x from 'x'`
       if (
