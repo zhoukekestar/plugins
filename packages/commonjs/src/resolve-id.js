@@ -6,11 +6,12 @@ import { dirname, resolve, sep } from 'path';
 import {
   DYNAMIC_JSON_PREFIX,
   DYNAMIC_PACKAGES_ID,
-  getExternalProxyId,
+  EXPOSED_EXPORTS_PROXY_SUFFIX,
+  EXTERNAL_PROXY_SUFFIX,
   getIdFromProxyId,
   getProxyId,
   HELPERS_ID,
-  PROXY_SUFFIX
+  CJS_PROXY_SUFFIX
 } from './helpers';
 
 function getCandidatesForExtension(resolved, extension) {
@@ -24,7 +25,7 @@ function getCandidates(resolved, extensions) {
   );
 }
 
-export default function getResolveId(extensions) {
+export default function getResolveId(extensions, getExposedExports) {
   function resolveExtensions(importee, importer) {
     // not our problem
     if (importee[0] !== '.' || !importer) return undefined;
@@ -45,15 +46,16 @@ export default function getResolveId(extensions) {
   }
 
   function resolveId(importee, importer) {
-    const isProxyModule = importee.endsWith(PROXY_SUFFIX);
+    const isProxyModule = importee.endsWith(CJS_PROXY_SUFFIX);
     if (isProxyModule) {
-      importee = getIdFromProxyId(importee);
+      importee = getIdFromProxyId(importee, CJS_PROXY_SUFFIX);
     }
     if (importee.startsWith('\0')) {
       if (
         importee.startsWith(HELPERS_ID) ||
         importee === DYNAMIC_PACKAGES_ID ||
-        importee.startsWith(DYNAMIC_JSON_PREFIX)
+        importee.startsWith(DYNAMIC_JSON_PREFIX) ||
+        importee.endsWith(EXPOSED_EXPORTS_PROXY_SUFFIX)
       ) {
         return importee;
       }
@@ -62,21 +64,28 @@ export default function getResolveId(extensions) {
       }
     }
 
-    if (importer && importer.endsWith(PROXY_SUFFIX)) {
-      importer = getIdFromProxyId(importer);
+    if (importer && importer.endsWith(CJS_PROXY_SUFFIX)) {
+      importer = getIdFromProxyId(importer, CJS_PROXY_SUFFIX);
     }
 
-    return this.resolve(importee, importer, { skipSelf: true }).then((resolved) => {
+    return this.resolve(importee, importer, { skipSelf: true }).then(async (resolved) => {
       if (!resolved) {
         resolved = resolveExtensions(importee, importer);
       }
       if (isProxyModule) {
         if (!resolved) {
-          return { id: getExternalProxyId(importee), external: false };
+          return { id: getProxyId(importee, EXTERNAL_PROXY_SUFFIX), external: false };
         }
-        resolved.id = (resolved.external ? getExternalProxyId : getProxyId)(resolved.id);
-        resolved.external = false;
+        if (resolved.external) {
+          resolved.id = getProxyId(resolved.id, EXTERNAL_PROXY_SUFFIX);
+          resolved.external = false;
+        } else {
+          resolved.id = getProxyId(resolved.id, CJS_PROXY_SUFFIX);
+        }
         return resolved;
+      }
+      if (resolved && !importer && (await getExposedExports(resolved.id))) {
+        return getProxyId(resolved.id, EXPOSED_EXPORTS_PROXY_SUFFIX);
       }
       return resolved;
     });

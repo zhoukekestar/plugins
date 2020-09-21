@@ -1,10 +1,9 @@
-export const PROXY_SUFFIX = '?commonjs-proxy';
-export const getProxyId = (id) => `\0${id}${PROXY_SUFFIX}`;
-export const getIdFromProxyId = (proxyId) => proxyId.slice(1, -PROXY_SUFFIX.length);
+export const CJS_PROXY_SUFFIX = '?commonjs-proxy';
+export const EXTERNAL_PROXY_SUFFIX = '?commonjs-external';
+export const EXPOSED_EXPORTS_PROXY_SUFFIX = '?exposed-exports-proxy';
 
-export const EXTERNAL_SUFFIX = '?commonjs-external';
-export const getExternalProxyId = (id) => `\0${id}${EXTERNAL_SUFFIX}`;
-export const getIdFromExternalProxyId = (proxyId) => proxyId.slice(1, -EXTERNAL_SUFFIX.length);
+export const getProxyId = (id, suffix) => `\0${id}${suffix}`;
+export const getIdFromProxyId = (proxyId, suffix) => proxyId.slice(1, -suffix.length);
 
 export const VIRTUAL_PATH_BASE = '/$$rollup_base$$';
 export const getVirtualPathForDynamicRequirePath = (path, commonDir) => {

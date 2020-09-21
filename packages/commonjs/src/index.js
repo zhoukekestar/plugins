@@ -7,15 +7,17 @@ import { peerDependencies } from '../package.json';
 
 import { getDynamicPackagesEntryIntro, getDynamicPackagesModule } from './dynamic-packages-manager';
 import getDynamicRequirePaths from './dynamic-require-paths';
+import { getExposedExportsHandler, getExposedExportsProxy } from './exposed-exports';
+
 import {
   DYNAMIC_JSON_PREFIX,
   DYNAMIC_PACKAGES_ID,
-  EXTERNAL_SUFFIX,
+  EXPOSED_EXPORTS_PROXY_SUFFIX,
+  EXTERNAL_PROXY_SUFFIX,
   getHelpersModule,
-  getIdFromExternalProxyId,
   getIdFromProxyId,
   HELPERS_ID,
-  PROXY_SUFFIX
+  CJS_PROXY_SUFFIX
 } from './helpers';
 import { setIsCjsPromise } from './is-cjs';
 import {
@@ -71,7 +73,10 @@ export default function commonjs(options = {}) {
       ? (id) => options.ignore.includes(id)
       : () => false;
 
-  const resolveId = getResolveId(extensions);
+  const { setResolveForExposedExports, getExposedExports } = getExposedExportsHandler(
+    options.exposedExports
+  );
+  const resolveId = getResolveId(extensions, getExposedExports);
 
   const sourceMap = options.sourceMap !== false;
 
@@ -132,11 +137,12 @@ export default function commonjs(options = {}) {
           `Insufficient Rollup version: "@rollup/plugin-commonjs" requires at least rollup@${minVersion} but found rollup@${this.meta.rollupVersion}.`
         );
       }
+      setResolveForExposedExports(this.resolve);
     },
 
     resolveId,
 
-    load(id) {
+    async load(id) {
       if (id === HELPERS_ID) {
         return getHelpersModule(isDynamicRequireModulesEnabled);
       }
@@ -145,8 +151,8 @@ export default function commonjs(options = {}) {
         return getSpecificHelperProxy(id);
       }
 
-      if (id.endsWith(EXTERNAL_SUFFIX)) {
-        const actualId = getIdFromExternalProxyId(id);
+      if (id.endsWith(EXTERNAL_PROXY_SUFFIX)) {
+        const actualId = getIdFromProxyId(id, EXTERNAL_PROXY_SUFFIX);
         return getUnknownRequireProxy(
           actualId,
           isEsmExternal(actualId) ? getRequireReturnsDefault(actualId) : true
@@ -166,14 +172,19 @@ export default function commonjs(options = {}) {
         return getDynamicRequireProxy(normalizedPath, commonDir);
       }
 
-      if (id.endsWith(PROXY_SUFFIX)) {
-        const actualId = getIdFromProxyId(id);
+      if (id.endsWith(CJS_PROXY_SUFFIX)) {
+        const actualId = getIdFromProxyId(id, CJS_PROXY_SUFFIX);
         return getStaticRequireProxy(
           actualId,
           getRequireReturnsDefault(actualId),
           esModulesWithDefaultExport,
           esModulesWithNamedExports
         );
+      }
+
+      if (id.endsWith(EXPOSED_EXPORTS_PROXY_SUFFIX)) {
+        const actualId = getIdFromProxyId(id, EXPOSED_EXPORTS_PROXY_SUFFIX);
+        return getExposedExportsProxy(actualId, await getExposedExports(actualId));
       }
 
       if (isDynamicRequireModulesEnabled && this.getModuleInfo(id).isEntry) {

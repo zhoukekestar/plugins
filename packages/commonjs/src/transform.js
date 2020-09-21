@@ -13,7 +13,8 @@ import {
   DYNAMIC_REGISTER_PREFIX,
   getProxyId,
   getVirtualPathForDynamicRequirePath,
-  HELPERS_ID
+  HELPERS_ID,
+  CJS_PROXY_SUFFIX
 } from './helpers';
 import { getName } from './utils';
 
@@ -544,7 +545,7 @@ export function transformCommonjs(
         .map(([source]) => {
           const { name, importsDefault } = required[source];
           return `import ${importsDefault ? `${name} from ` : ``}'${
-            source.startsWith('\0') ? source : getProxyId(source)
+            source.startsWith('\0') ? source : getProxyId(source, CJS_PROXY_SUFFIX)
           }';`;
         })
     )
