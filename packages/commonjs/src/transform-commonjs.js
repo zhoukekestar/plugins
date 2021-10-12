@@ -353,7 +353,16 @@ export default function transformCommonjs(
               usesDynamicRequire = true;
               return;
             case 'module':
+              if (parent.property && parent.property.name === 'exports') {
+                return;
+              }
+              shouldWrap = true;
+              uses[name] = true;
+              return;
             case 'exports':
+              if (parent.property && parent.property.name) {
+                return;
+              }
               shouldWrap = true;
               uses[name] = true;
               return;

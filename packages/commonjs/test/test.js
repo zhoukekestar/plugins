@@ -268,6 +268,36 @@ test('identifies named exports from object literals', async (t) => {
   await testBundle(t, bundle);
 });
 
+test('named exports should not wrap [main-1]', async (t) => {
+  const bundle = await rollup({
+    input: 'fixtures/samples/named-exports-should-not-wrap/main-1.js',
+    plugins: [commonjs()]
+  });
+
+  const code = await getCodeFromBundle(bundle, { format: 'es' });
+  t.snapshot(code);
+});
+
+test('named exports should not wrap [main-2]', async (t) => {
+  const bundle = await rollup({
+    input: 'fixtures/samples/named-exports-should-not-wrap/main-2.js',
+    plugins: [commonjs()]
+  });
+
+  const code = await getCodeFromBundle(bundle, { format: 'es' });
+  t.snapshot(code);
+});
+
+test('named exports should not wrap [main-3]', async (t) => {
+  const bundle = await rollup({
+    input: 'fixtures/samples/named-exports-should-not-wrap/main-3.js',
+    plugins: [commonjs()]
+  });
+
+  const code = await getCodeFromBundle(bundle, { format: 'es' });
+  t.snapshot(code);
+});
+
 test('can ignore references to `global`', async (t) => {
   const bundle = await rollup({
     input: 'fixtures/samples/ignore-global/main.js',
