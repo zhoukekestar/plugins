@@ -353,7 +353,7 @@ export default function transformCommonjs(
               usesDynamicRequire = true;
               return;
             case 'module':
-              if (parent.property && parent.property.name === 'exports') {
+              if (node.shouldWrap === false) {
                 return;
               }
               shouldWrap = true;
@@ -384,7 +384,21 @@ export default function transformCommonjs(
               return;
           }
         }
-        case 'MemberExpression':
+        case 'MemberExpression': {
+          // Skip module.exports.foo = "bar" to keep shouldWrap=false
+          // Otherwise will be catch by `case 'Identifier': { case 'module': }`
+          // `node.computed` should be false, skip example: module.exports[key]
+          const memberKeyPath = getKeypath(node.object);
+          if (
+            node.computed === false &&
+            memberKeyPath &&
+            memberKeyPath.keypath === 'module.exports' &&
+            node.property.name
+          ) {
+            node.object.object.shouldWrap = false;
+            return;
+          }
+
           if (!isDynamicRequireModulesEnabled && isModuleRequire(node, scope)) {
             magicString.overwrite(node.start, node.end, `${HELPERS_NAME}.commonjsRequire`, {
               storeName: true
@@ -393,6 +407,7 @@ export default function transformCommonjs(
             skippedNodes.add(node.property);
           }
           return;
+        }
         case 'ReturnStatement':
           // if top-level return, we need to wrap it
           if (lexicalDepth === 0) {
