@@ -516,7 +516,8 @@ export default function transformCommonjs(
         HELPERS_NAME,
         exportMode,
         detectWrappedDefault,
-        defaultIsModuleExports
+        defaultIsModuleExports,
+        id
       );
 
   if (shouldWrap) {
