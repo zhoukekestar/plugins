@@ -30,7 +30,8 @@ export function rewriteExportsAndGetExportsBlock(
   HELPERS_NAME,
   exportMode,
   detectWrappedDefault,
-  defaultIsModuleExports
+  defaultIsModuleExports,
+  id
 ) {
   const exports = [];
   const exportDeclarations = [];
@@ -42,7 +43,8 @@ export function rewriteExportsAndGetExportsBlock(
       exportDeclarations,
       moduleExportsAssignments,
       firstTopLevelModuleExportsAssignment,
-      exportsName
+      exportsName,
+      id
     );
   } else {
     exports.push(`${exportsName} as __moduleExports`);
@@ -52,7 +54,8 @@ export function rewriteExportsAndGetExportsBlock(
         exportsName,
         detectWrappedDefault,
         HELPERS_NAME,
-        defaultIsModuleExports
+        defaultIsModuleExports,
+        id
       );
     } else {
       getExports(
@@ -67,7 +70,8 @@ export function rewriteExportsAndGetExportsBlock(
         exportsName,
         defineCompiledEsmExpressions,
         HELPERS_NAME,
-        defaultIsModuleExports
+        defaultIsModuleExports,
+        id
       );
     }
   }
@@ -84,7 +88,8 @@ function getExportsForReplacedModuleExports(
   exportDeclarations,
   moduleExportsAssignments,
   firstTopLevelModuleExportsAssignment,
-  exportsName
+  exportsName,
+  id
 ) {
   for (const { left } of moduleExportsAssignments) {
     magicString.overwrite(left.start, left.end, exportsName);
@@ -92,6 +97,14 @@ function getExportsForReplacedModuleExports(
   magicString.prependRight(firstTopLevelModuleExportsAssignment.left.start, 'var ');
   exports.push(`${exportsName} as __moduleExports`);
   exportDeclarations.push(`export default ${exportsName};`);
+
+  if (global.rollupPluginCommonJsGenerateExportsHook) {
+    global.rollupPluginCommonJsGenerateExportsHook({
+      exportDeclarations,
+      defaultName: exportsName,
+      id
+    });
+  }
 }
 
 function getExportsWhenWrapping(
@@ -99,17 +112,21 @@ function getExportsWhenWrapping(
   exportsName,
   detectWrappedDefault,
   HELPERS_NAME,
-  defaultIsModuleExports
+  defaultIsModuleExports,
+  id
 ) {
-  exportDeclarations.push(
-    `export default ${
-      detectWrappedDefault && defaultIsModuleExports === 'auto'
-        ? `/*@__PURE__*/${HELPERS_NAME}.getDefaultExportFromCjs(${exportsName})`
-        : defaultIsModuleExports === false
-        ? `${exportsName}.default`
-        : exportsName
-    };`
-  );
+  const defaultName =
+    detectWrappedDefault && defaultIsModuleExports === 'auto'
+      ? `/*@__PURE__*/${HELPERS_NAME}.getDefaultExportFromCjs(${exportsName})`
+      : defaultIsModuleExports === false
+      ? `${exportsName}.default`
+      : exportsName;
+
+  exportDeclarations.push(`export default ${defaultName};`);
+
+  if (global.rollupPluginCommonJsGenerateExportsHook) {
+    global.rollupPluginCommonJsGenerateExportsHook({ exportDeclarations, defaultName, id });
+  }
 }
 
 function getExports(
@@ -124,7 +141,8 @@ function getExports(
   exportsName,
   defineCompiledEsmExpressions,
   HELPERS_NAME,
-  defaultIsModuleExports
+  defaultIsModuleExports,
+  id
 ) {
   let deconflictedDefaultExportName;
   // Collect and rewrite module.exports assignments
@@ -166,11 +184,35 @@ function getExports(
 
   if (!isRestorableCompiledEsm || defaultIsModuleExports === true) {
     exportDeclarations.push(`export default ${exportsName};`);
+
+    if (global.rollupPluginCommonJsGenerateExportsHook) {
+      global.rollupPluginCommonJsGenerateExportsHook({
+        exportDeclarations,
+        defaultName: exportsName,
+        id
+      });
+    }
   } else if (moduleExportsAssignments.length === 0 || defaultIsModuleExports === false) {
     exports.push(`${deconflictedDefaultExportName || exportsName} as default`);
+
+    if (global.rollupPluginCommonJsGenerateExportsHook) {
+      global.rollupPluginCommonJsGenerateExportsHook({
+        exportDeclarations,
+        defaultName: deconflictedDefaultExportName || exportsName,
+        id
+      });
+    }
   } else {
     exportDeclarations.push(
       `export default /*@__PURE__*/${HELPERS_NAME}.getDefaultExportFromCjs(${exportsName});`
     );
+
+    if (global.rollupPluginCommonJsGenerateExportsHook) {
+      global.rollupPluginCommonJsGenerateExportsHook({
+        exportDeclarations,
+        defaultName: `${HELPERS_NAME}.getDefaultExportFromCjs(${exportsName})`,
+        id
+      });
+    }
   }
 }
