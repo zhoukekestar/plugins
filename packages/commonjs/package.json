@@ -1,8 +1,8 @@
 {
-  "name": "@rollup/plugin-commonjs",
+  "name": "@ali/rollup-plugin-commonjs",
   "version": "21.0.0",
   "publishConfig": {
-    "access": "public"
+    "registry": "https://registry.npm.alibaba-inc.com"
   },
   "description": "Convert CommonJS modules to ES2015",
   "license": "MIT",
