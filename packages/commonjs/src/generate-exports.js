@@ -189,7 +189,8 @@ function getExports(
       global.rollupPluginCommonJsGenerateExportsHook({
         exportDeclarations,
         defaultName: exportsName,
-        id
+        id,
+        exportsAssignmentsByName
       });
     }
   } else if (moduleExportsAssignments.length === 0 || defaultIsModuleExports === false) {
@@ -199,7 +200,8 @@ function getExports(
       global.rollupPluginCommonJsGenerateExportsHook({
         exportDeclarations,
         defaultName: deconflictedDefaultExportName || exportsName,
-        id
+        id,
+        exportsAssignmentsByName
       });
     }
   } else {
@@ -211,7 +213,8 @@ function getExports(
       global.rollupPluginCommonJsGenerateExportsHook({
         exportDeclarations,
         defaultName: `${HELPERS_NAME}.getDefaultExportFromCjs(${exportsName})`,
-        id
+        id,
+        exportsAssignmentsByName
       });
     }
   }
