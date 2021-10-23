@@ -517,7 +517,8 @@ export default function transformCommonjs(
         exportMode,
         detectWrappedDefault,
         defaultIsModuleExports,
-        id
+        id,
+        moduleAccessScopes
       );
 
   if (shouldWrap) {

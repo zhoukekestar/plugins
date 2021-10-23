@@ -31,7 +31,8 @@ export function rewriteExportsAndGetExportsBlock(
   exportMode,
   detectWrappedDefault,
   defaultIsModuleExports,
-  id
+  id,
+  moduleAccessScopes
 ) {
   const exports = [];
   const exportDeclarations = [];
@@ -44,7 +45,8 @@ export function rewriteExportsAndGetExportsBlock(
       moduleExportsAssignments,
       firstTopLevelModuleExportsAssignment,
       exportsName,
-      id
+      id,
+      moduleAccessScopes
     );
   } else {
     exports.push(`${exportsName} as __moduleExports`);
@@ -55,7 +57,8 @@ export function rewriteExportsAndGetExportsBlock(
         detectWrappedDefault,
         HELPERS_NAME,
         defaultIsModuleExports,
-        id
+        id,
+        moduleAccessScopes
       );
     } else {
       getExports(
@@ -71,7 +74,8 @@ export function rewriteExportsAndGetExportsBlock(
         defineCompiledEsmExpressions,
         HELPERS_NAME,
         defaultIsModuleExports,
-        id
+        id,
+        moduleAccessScopes
       );
     }
   }
@@ -89,7 +93,8 @@ function getExportsForReplacedModuleExports(
   moduleExportsAssignments,
   firstTopLevelModuleExportsAssignment,
   exportsName,
-  id
+  id,
+  moduleAccessScopes
 ) {
   for (const { left } of moduleExportsAssignments) {
     magicString.overwrite(left.start, left.end, exportsName);
@@ -102,7 +107,8 @@ function getExportsForReplacedModuleExports(
     global.rollupPluginCommonJsGenerateExportsHook({
       exportDeclarations,
       defaultName: exportsName,
-      id
+      id,
+      moduleAccessScopes
     });
   }
 }
@@ -113,7 +119,8 @@ function getExportsWhenWrapping(
   detectWrappedDefault,
   HELPERS_NAME,
   defaultIsModuleExports,
-  id
+  id,
+  moduleAccessScopes
 ) {
   const defaultName =
     detectWrappedDefault && defaultIsModuleExports === 'auto'
@@ -125,7 +132,12 @@ function getExportsWhenWrapping(
   exportDeclarations.push(`export default ${defaultName};`);
 
   if (global.rollupPluginCommonJsGenerateExportsHook) {
-    global.rollupPluginCommonJsGenerateExportsHook({ exportDeclarations, defaultName, id });
+    global.rollupPluginCommonJsGenerateExportsHook({
+      exportDeclarations,
+      defaultName,
+      id,
+      moduleAccessScopes
+    });
   }
 }
 
@@ -142,7 +154,8 @@ function getExports(
   defineCompiledEsmExpressions,
   HELPERS_NAME,
   defaultIsModuleExports,
-  id
+  id,
+  moduleAccessScopes
 ) {
   let deconflictedDefaultExportName;
   // Collect and rewrite module.exports assignments
@@ -190,7 +203,8 @@ function getExports(
         exportDeclarations,
         defaultName: exportsName,
         id,
-        exportsAssignmentsByName
+        exportsAssignmentsByName,
+        moduleAccessScopes
       });
     }
   } else if (moduleExportsAssignments.length === 0 || defaultIsModuleExports === false) {
@@ -201,7 +215,8 @@ function getExports(
         exportDeclarations,
         defaultName: deconflictedDefaultExportName || exportsName,
         id,
-        exportsAssignmentsByName
+        exportsAssignmentsByName,
+        moduleAccessScopes
       });
     }
   } else {
@@ -214,7 +229,8 @@ function getExports(
         exportDeclarations,
         defaultName: `${HELPERS_NAME}.getDefaultExportFromCjs(${exportsName})`,
         id,
-        exportsAssignmentsByName
+        exportsAssignmentsByName,
+        moduleAccessScopes
       });
     }
   }
